@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Python
+venv/
+**/venv/
+.venv/
+**/.venv/
+__pycache__/
+*.pyc
+
+# Next.js
+.next/
+**/.next/
+
+# Build
+dist/
+**/dist/
+build/
+**/build/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+**/logs/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Test media
+*.mp4
+*.mov
+*.avi
+test.jpg
+test_image.jpg
+test_*.jpg
+test_*.png
+
+# Backup/temp files
+*.backup
+*.bak
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
