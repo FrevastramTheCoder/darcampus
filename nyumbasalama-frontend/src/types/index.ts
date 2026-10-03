@@ -81,38 +81,3 @@ export interface Review {
   comment: string;
   createdAt: string;
 }
-
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-}
-
-export interface ChatbotResponse {
-  response: string;
-  matchedProperties: Array<{
-    propertyId?: string;
-    title?: string;
-    type?: string;
-    price?: number;
-    location?: string;
-    area?: string;
-    university?: string;
-    universityLabel?: string;
-    description?: string;
-    amenities?: string;
-    rating?: number;
-    reviewCount?: number;
-    score?: number;
-  }>;
-  sources: Array<{
-    id?: string;
-    title?: string;
-    score?: number;
-  }>;
-  confidence: number;
-  responseTimeMs: number;
-  model: string;
-  aiMode: boolean;
-}

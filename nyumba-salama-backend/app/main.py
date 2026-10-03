@@ -1,4 +1,3 @@
-
 import os
 import logging
 from contextlib import asynccontextmanager
@@ -8,11 +7,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+# ✅ load_dotenv LAZIMA iwe KABLA ya imports za app
 load_dotenv()
 
+# ✅ MUHIMU: Import models ili Base.metadata ijue tables zote
+from app import models  # noqa: F401
 from app.database import SessionLocal, init_db
 from app.services.seed import seed_admin
-from app.routers import accommodations, admin, auth, favorites, geo, images, properties, reviews, universities, users
+from app.routers import (
+    accommodations,
+    admin,
+    auth,
+    favorites,
+    geo,
+    images,
+    properties,
+    reviews,
+    universities,
+    users,
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BASE_DIR)
@@ -32,23 +45,25 @@ logging.basicConfig(
         logging.StreamHandler(),
     ],
 )
-logger = logging.getLogger("nyumbasalama")
+logger = logging.getLogger("sankha-realestate")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting NyumbaSalama API")
+    logger.info("Starting Sankha RealEstate API")
     init_db()
     db = SessionLocal()
     try:
         seed_admin(db)
     finally:
         db.close()
-    logger.info("NyumbaSalama API is ready")
+    logger.info("Sankha RealEstate API is ready")
     yield
-    logger.info("NyumbaSalama API stopped")
+    logger.info("Sankha RealEstate API stopped")
+
 
 app = FastAPI(
-    title="NyumbaSalama API",
+    title="Sankha RealEstate API",
     description="Student accommodation platform",
     version="2.0.0",
     docs_url="/docs",
@@ -57,14 +72,23 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ============================================================
+# CORS — Allowed Origins
+# ============================================================
 _configured_origins = [
+    # Local development
     "http://localhost:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
+    # Production - Netlify (Sankha RealEstate)
+    "https://dsmnyumbasalama.netlify.app",
+    "https://sankha-realestate.netlify.app",
+    # Legacy domains
     "https://nyumbasalama.com",
     "https://www.nyumbasalama.com",
     "https://api.nyumbasalama.com",
+    # Env-based
     os.getenv("FRONTEND_URL", ""),
 ]
 ALLOWED_ORIGINS = list(dict.fromkeys(origin for origin in _configured_origins if origin))
@@ -79,6 +103,7 @@ app.add_middleware(
     max_age=600,
 )
 
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
@@ -90,6 +115,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "path": request.url.path,
         },
     )
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -104,9 +130,12 @@ async def global_exception_handler(request: Request, exc: Exception):
         },
     )
 
+
 app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
-# Existing routes
+# ============================================================
+# ROUTERS
+# ============================================================
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(properties.router)
@@ -120,12 +149,13 @@ for current_router in (geo.router, accommodations.router, universities.router):
     app.include_router(current_router)
     app.include_router(current_router, prefix="/api")
 
+
 @app.get("/", tags=["System"])
 async def root():
     return {
         "success": True,
-        "message": "NyumbaSalama API is running",
-        "application": "NyumbaSalama",
+        "message": "Sankha RealEstate API is running",
+        "application": "Sankha RealEstate",
         "version": "2.0.0",
         "status": "online",
         "endpoints": {
@@ -137,12 +167,13 @@ async def root():
         },
     }
 
+
 @app.get("/api/health", tags=["System"])
 async def health_check():
     return {
         "success": True,
         "status": "healthy",
-        "application": "NyumbaSalama API",
+        "application": "Sankha RealEstate API",
         "version": "2.0.0",
         "cors": {"enabled": True, "origins": ALLOWED_ORIGINS},
         "uploads": {
@@ -159,6 +190,7 @@ async def health_check():
             "geo": True,
         },
     }
+
 
 if __name__ == "__main__":
     import uvicorn

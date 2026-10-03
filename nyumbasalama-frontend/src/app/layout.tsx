@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import ChatbotMount from '@/components/ChatbotMount'
 
 export const metadata: Metadata = {
   title: 'NyumbaSalama',
@@ -16,7 +15,6 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
-        <ChatbotMount />
       </body>
     </html>
   )

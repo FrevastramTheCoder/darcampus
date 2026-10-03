@@ -151,23 +151,6 @@ export const reviewApi = {
 };
 
 // ============================================================
-// CHATBOT API – FIXED ENDPOINT ✅
-// ============================================================
-
-export const chatbotApi = {
-  ask: (
-    message: string,
-    history: Array<{ role: "user" | "assistant"; content: string }> = [],
-    sessionId?: string
-  ) =>
-    api.post("/chat", {
-      message,
-      session_id: sessionId,
-      // history is not used by the simple chatbot; remove if your backend doesn't support it
-    }),
-};
-
-// ============================================================
 // ADMIN API
 // ============================================================
 
