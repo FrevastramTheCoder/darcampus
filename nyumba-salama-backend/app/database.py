@@ -1,7 +1,11 @@
 import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+
+# ✅ FIX: load_dotenv LAZIMA iwe KABLA ya kusoma DATABASE_URL
+load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sankha-realestate.db")
 
@@ -16,7 +20,7 @@ Base = declarative_base()
 
 
 def init_db():
-    # ✅ Import models KABLA ya create_all
+    # ✅ Import models KABLA ya create_all ili Base.metadata ijue tables zote
     from app import models  # noqa: F401
     Base.metadata.create_all(bind=engine)
 

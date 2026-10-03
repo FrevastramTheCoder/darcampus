@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from sqlalchemy import (
     Boolean,
@@ -9,13 +8,9 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.orm import declarative_base
 
-# ============================================================
-# BASE
-# ============================================================
-
-Base = declarative_base()
+# ✅ FIX: Tumia Base moja kutoka database.py (sio kuunda mpya)
+from app.database import Base
 
 
 # ============================================================

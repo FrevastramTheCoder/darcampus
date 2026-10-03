@@ -46,3 +46,7 @@ Thumbs.db
 node_modules/
 .next/
 out/
+.env
+*.db
+venv/
+__pycache__/
