@@ -4,26 +4,24 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# ✅ FIX: load_dotenv LAZIMA iwe KABLA ya kusoma DATABASE_URL
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sankha-realestate.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./nyumbasalama.db")
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-)
+# Render inatoa postgres:// lakini SQLAlchemy inahitaji postgresql://
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
+# connect_args ni kwa SQLite tu
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
 Base = declarative_base()
 
-
 def init_db():
-    # ✅ Import models KABLA ya create_all ili Base.metadata ijue tables zote
     from app import models  # noqa: F401
     Base.metadata.create_all(bind=engine)
-
 
 def get_db():
     db = SessionLocal()

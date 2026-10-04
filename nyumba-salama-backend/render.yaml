@@ -1,8 +1,7 @@
 services:
   - type: web
-    name: sankha-realestate-api
+    name: nyumbasalama-api
     runtime: python
-    repo: https://github.com/FrevastramTheCoder/sankha-realestate-backend
     plan: free
     branch: main
     buildCommand: pip install -r requirements.txt
@@ -11,12 +10,16 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.9
       - key: DATABASE_URL
-        value: sqlite:///./sankha-realestate.db
+        fromDatabase:
+          name: nyumbasalama-db
+          property: connectionString
       - key: DEBUG
         value: "False"
       - key: FRONTEND_URL
-        value: http://localhost:3000
+        value: https://nyumbasalama.netlify.app
       - key: JWT_SECRET
+        generateValue: true
+      - key: GROQ_API_KEY
         sync: false
       - key: GEOCODING_ENABLED
         value: "true"
@@ -30,3 +33,9 @@ services:
         value: https://router.project-osrm.org
       - key: ROUTING_SUPPORTED_MODES
         value: driving
+
+databases:
+  - name: nyumbasalama-db
+    databaseName: nyumbasalama
+    plan: free
+    region: frankfurt
