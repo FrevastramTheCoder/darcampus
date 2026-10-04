@@ -18,7 +18,7 @@ from app.routers import (
     accommodations,
     admin,
     auth,
-    bootstrap,      # ← ONGEZWA
+    # bootstrap,      # 🔒 IMEZIMWA baada ya admin creation (usalama)
     favorites,
     geo,
     images,
@@ -85,7 +85,7 @@ _configured_origins = [
     # Production - Netlify
     "https://dsmnyumbasalama.netlify.app",
     "https://sankha-realestate.netlify.app",
-    "https://grafantz.netlify.app",     # ← ONGEZWA
+    "https://grafantz.netlify.app",
     # Legacy domains
     "https://nyumbasalama.com",
     "https://www.nyumbasalama.com",
@@ -100,7 +100,7 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With", "X-Bootstrap-Secret"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
     expose_headers=["Content-Length", "Content-Type"],
     max_age=600,
 )
@@ -145,7 +145,7 @@ app.include_router(reviews.router)
 app.include_router(favorites.router)
 app.include_router(admin.router)
 app.include_router(images.router)
-app.include_router(bootstrap.router)    # ← ONGEZWA
+# app.include_router(bootstrap.router)    # 🔒 IMEZIMWA baada ya admin creation
 
 # New routes (without ai)
 for current_router in (geo.router, accommodations.router, universities.router):
@@ -191,7 +191,7 @@ async def health_check():
             "universities": True,
             "accommodations": True,
             "geo": True,
-            "bootstrap": True,      # ← ONGEZWA
+            "bootstrap": False,     # 🔒 IMEZIMWA
         },
     }
 
