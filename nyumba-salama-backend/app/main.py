@@ -18,6 +18,7 @@ from app.routers import (
     accommodations,
     admin,
     auth,
+    bootstrap,      # ← ONGEZWA
     favorites,
     geo,
     images,
@@ -81,9 +82,10 @@ _configured_origins = [
     "http://localhost:3001",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
-    # Production - Netlify (Sankha RealEstate)
+    # Production - Netlify
     "https://dsmnyumbasalama.netlify.app",
     "https://sankha-realestate.netlify.app",
+    "https://grafantz.netlify.app",     # ← ONGEZWA
     # Legacy domains
     "https://nyumbasalama.com",
     "https://www.nyumbasalama.com",
@@ -98,7 +100,7 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With", "X-Bootstrap-Secret"],
     expose_headers=["Content-Length", "Content-Type"],
     max_age=600,
 )
@@ -143,6 +145,7 @@ app.include_router(reviews.router)
 app.include_router(favorites.router)
 app.include_router(admin.router)
 app.include_router(images.router)
+app.include_router(bootstrap.router)    # ← ONGEZWA
 
 # New routes (without ai)
 for current_router in (geo.router, accommodations.router, universities.router):
@@ -188,6 +191,7 @@ async def health_check():
             "universities": True,
             "accommodations": True,
             "geo": True,
+            "bootstrap": True,      # ← ONGEZWA
         },
     }
 
