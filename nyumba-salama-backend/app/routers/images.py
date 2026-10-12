@@ -3,40 +3,29 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
 import os
+import shutil
 import re
 import uuid
 
 from app.database import get_db
 from app.models import Image, User, Property
-from app.services.cloudinary_service import upload_image_to_cloudinary, delete_image_from_cloudinary
 
 router = APIRouter(prefix="/images", tags=["images"])
 
 MAX_IMAGE_SIZE = 10 * 1024 * 1024
 ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
 
+os.makedirs("uploads/images", exist_ok=True)
 
-# ============================================================
-# ADMIN CHECK
-# ============================================================
 
 def is_admin(db: Session, authorization: Optional[str]) -> bool:
-    """Check if any admin exists in the database."""
-    admin = db.query(User).filter(
-        User.role.in_(["admin", "ADMIN"])
-    ).first()
-    
+    admin = db.query(User).filter(User.role.in_(["admin", "ADMIN"])).first()
     if admin:
         print(f"✅ Admin found: {admin.email}")
         return True
-    
-    print("❌ No admin found in database")
+    print("❌ No admin found")
     return False
 
-
-# ============================================================
-# UPLOAD - ADMIN ONLY (CLOUDINARY)
-# ============================================================
 
 @router.post("/upload")
 async def upload_image(
@@ -50,69 +39,61 @@ async def upload_image(
     db: Session = Depends(get_db)
 ):
     try:
-        # ✅ ADMIN CHECK
         if not is_admin(db, authorization):
             raise HTTPException(status_code=403, detail="Only admin can upload")
-        
-        # Validate file size
+
         file.file.seek(0, 2)
         file_size = file.file.tell()
         file.file.seek(0)
         if file_size > MAX_IMAGE_SIZE:
             raise HTTPException(status_code=400, detail=f"Max {MAX_IMAGE_SIZE // (1024*1024)}MB")
-        
-        # Validate file type
+
         safe_original_name = os.path.basename(file.filename or "")
         file_ext = os.path.splitext(safe_original_name)[1].lower()
         if file_ext not in ALLOWED_EXTENSIONS:
             raise HTTPException(status_code=400, detail=f"Invalid: {file_ext}")
-        
-        # ✅ UPLOAD TO CLOUDINARY
-        print(f"📤 Uploading to Cloudinary: {safe_original_name}")
-        cloudinary_result = await upload_image_to_cloudinary(file, folder="nyumbasalama")
-        image_url = cloudinary_result["url"]
-        public_id = cloudinary_result["public_id"]
-        
-        print(f"✅ Cloudinary URL: {image_url}")
-        
-        # Create property if not exists
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', safe_original_name)
+        filename = f"{timestamp}_{uuid.uuid4().hex}_{safe_filename}"
+        filepath = f"uploads/images/{filename}"
+
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
         property_exists = db.query(Property).filter(Property.id == 1).first()
         if not property_exists:
             property_exists = Property(
-                title="Default",
-                description="Default",
-                price=0,
-                location="Default",
-                university="Default",
+                title="Default", description="Default", price=0,
+                location="Default", university="Default",
                 created_at=datetime.now()
             )
             db.add(property_exists)
             db.commit()
             db.refresh(property_exists)
-        
-        # Create image record with Cloudinary URL
+
         new_image = Image(
             title=title,
-            description=f"Cloudinary: {public_id}",
-            url=image_url,
+            description="Image uploaded by admin",
+            url=f"/uploads/images/{filename}",
             property_id=property_exists.id,
             price=price,
             location=location,
             university=university,
             phone=phone,
-            image_url=image_url,
+            image_url=f"/uploads/images/{filename}",
             created_at=datetime.now()
         )
-        
+
         db.add(new_image)
         db.commit()
         db.refresh(new_image)
-        
-        print(f"✅ Image saved: {image_url}")
-        
+
+        print(f"✅ Image saved: {filename}")
+
         return {
             "success": True,
-            "message": "Image uploaded to Cloudinary!",
+            "message": "Image uploaded!",
             "image": {
                 "id": new_image.id,
                 "title": new_image.title,
@@ -130,10 +111,6 @@ async def upload_image(
         print(f"❌ Upload error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# ============================================================
-# GET IMAGES - PUBLIC
-# ============================================================
 
 @router.get("/")
 async def get_images(limit: int = 20, db: Session = Depends(get_db)):
@@ -159,10 +136,6 @@ async def get_images(limit: int = 20, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ============================================================
-# DELETE - ADMIN ONLY (CLOUDINARY)
-# ============================================================
-
 @router.delete("/{image_id}")
 async def delete_image(
     image_id: int,
@@ -170,20 +143,19 @@ async def delete_image(
     db: Session = Depends(get_db)
 ):
     try:
-        # ✅ ADMIN CHECK
         if not is_admin(db, authorization):
             raise HTTPException(status_code=403, detail="Only admin can delete")
-        
+
         image = db.query(Image).filter(Image.id == image_id).first()
         if not image:
             raise HTTPException(status_code=404, detail="Image not found")
-        
-        # ✅ DELETE FROM CLOUDINARY
-        if image.description and image.description.startswith("Cloudinary: "):
-            public_id = image.description.replace("Cloudinary: ", "")
-            delete_image_from_cloudinary(public_id)
-            print(f"✅ Deleted from Cloudinary: {public_id}")
-        
+
+        if image.image_url:
+            filename = image.image_url.split("/")[-1]
+            file_path = f"uploads/images/{filename}"
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
         db.delete(image)
         db.commit()
         return {"success": True, "message": "Deleted"}
