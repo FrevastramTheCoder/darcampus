@@ -3,31 +3,25 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
 import os
-import shutil
 import re
 import uuid
 
 from app.database import get_db
 from app.models import Image, User, Property
+from app.services.cloudinary_service import upload_image_to_cloudinary, delete_image_from_cloudinary
 
 router = APIRouter(prefix="/images", tags=["images"])
 
 MAX_IMAGE_SIZE = 10 * 1024 * 1024
 ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
 
-os.makedirs("uploads/images", exist_ok=True)
-
 
 # ============================================================
-# ADMIN CHECK - SIMPLE VERSION
+# ADMIN CHECK
 # ============================================================
 
 def is_admin(db: Session, authorization: Optional[str]) -> bool:
-    """
-    Simple admin check for development.
-    Returns True if any admin exists in the database.
-    """
-    # ✅ Check if any admin exists in database
+    """Check if any admin exists in the database."""
     admin = db.query(User).filter(
         User.role.in_(["admin", "ADMIN"])
     ).first()
@@ -41,7 +35,7 @@ def is_admin(db: Session, authorization: Optional[str]) -> bool:
 
 
 # ============================================================
-# UPLOAD - ADMIN ONLY
+# UPLOAD - ADMIN ONLY (CLOUDINARY)
 # ============================================================
 
 @router.post("/upload")
@@ -73,14 +67,13 @@ async def upload_image(
         if file_ext not in ALLOWED_EXTENSIONS:
             raise HTTPException(status_code=400, detail=f"Invalid: {file_ext}")
         
-        # Save file
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', safe_original_name)
-        filename = f"{timestamp}_{uuid.uuid4().hex}_{safe_filename}"
-        filepath = f"uploads/images/{filename}"
+        # ✅ UPLOAD TO CLOUDINARY
+        print(f"📤 Uploading to Cloudinary: {safe_original_name}")
+        cloudinary_result = await upload_image_to_cloudinary(file, folder="nyumbasalama")
+        image_url = cloudinary_result["url"]
+        public_id = cloudinary_result["public_id"]
         
-        with open(filepath, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        print(f"✅ Cloudinary URL: {image_url}")
         
         # Create property if not exists
         property_exists = db.query(Property).filter(Property.id == 1).first()
@@ -97,17 +90,17 @@ async def upload_image(
             db.commit()
             db.refresh(property_exists)
         
-        # Create image record
+        # Create image record with Cloudinary URL
         new_image = Image(
             title=title,
-            description="Image uploaded by admin",
-            url=f"/uploads/images/{filename}",
+            description=f"Cloudinary: {public_id}",
+            url=image_url,
             property_id=property_exists.id,
             price=price,
             location=location,
             university=university,
             phone=phone,
-            image_url=f"/uploads/images/{filename}",
+            image_url=image_url,
             created_at=datetime.now()
         )
         
@@ -115,11 +108,11 @@ async def upload_image(
         db.commit()
         db.refresh(new_image)
         
-        print(f"✅ Image uploaded: {filename}")
+        print(f"✅ Image saved: {image_url}")
         
         return {
             "success": True,
-            "message": "Image uploaded!",
+            "message": "Image uploaded to Cloudinary!",
             "image": {
                 "id": new_image.id,
                 "title": new_image.title,
@@ -167,7 +160,7 @@ async def get_images(limit: int = 20, db: Session = Depends(get_db)):
 
 
 # ============================================================
-# DELETE - ADMIN ONLY
+# DELETE - ADMIN ONLY (CLOUDINARY)
 # ============================================================
 
 @router.delete("/{image_id}")
@@ -185,12 +178,11 @@ async def delete_image(
         if not image:
             raise HTTPException(status_code=404, detail="Image not found")
         
-        # Delete file
-        if image.image_url:
-            filename = image.image_url.split("/")[-1]
-            file_path = f"uploads/images/{filename}"
-            if os.path.exists(file_path):
-                os.remove(file_path)
+        # ✅ DELETE FROM CLOUDINARY
+        if image.description and image.description.startswith("Cloudinary: "):
+            public_id = image.description.replace("Cloudinary: ", "")
+            delete_image_from_cloudinary(public_id)
+            print(f"✅ Deleted from Cloudinary: {public_id}")
         
         db.delete(image)
         db.commit()
